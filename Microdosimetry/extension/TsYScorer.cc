@@ -288,18 +288,25 @@ void TsYScorer::AccumulateEvent()
                     Einc = (*fHitsCollection)[i]->GetIncidentEnergy();
 
                 G4ThreeVector localPos = (*fHitsCollection)[i]->GetPos();                                  
-                if (
-                        ((localPos.x()-CenterPos.x()) * (localPos.x()-CenterPos.x()) +
-                        (localPos.z()-CenterPos.z()) * (localPos.z()-CenterPos.z()) 
-                        < 1.00001*SVradius*SVradius)
-                        && ((localPos.y()-CenterPos.y()) * (localPos.y()-CenterPos.y()) < 1.00001*SVheight*SVheight)
-                    )
+                G4bool outsideMinRadius, insideMaxRadius, inCylinder;
+                if (SVradiusMin==0){
+                    outsideMinRadius = true;
+                }
+                else {
+                    outsideMinRadius = (localPos.x()-CenterPos.x()) * (localPos.x()-CenterPos.x()) +
+                                       (localPos.z()-CenterPos.z()) * (localPos.z()-CenterPos.z()) > 0.9999*SVradiusMin*SVradiusMin;
+                }
+                insideMaxRadius = (localPos.x()-CenterPos.x()) * (localPos.x()-CenterPos.x()) +
+                                  (localPos.z()-CenterPos.z()) * (localPos.z()-CenterPos.z()) < 1.00001*SVradius*SVradius;
+
+                inCylinder = (localPos.y()-CenterPos.y()) * (localPos.y()-CenterPos.y()) < 1.00001*SVheight*SVheight;
+                if (outsideMinRadius && insideMaxRadius && inCylinder)
                 {
                     G4double edep = (*fHitsCollection)[i]->GetEdep();
                     G4int flag = (*fHitsCollection)[i]->GetParticleFlag();
                     EdepInEvent_Particle[flag] += edep;  // save different particle edep
                     EdepInEvent_Particle[8] += edep;     // save total particle edep
-                }  
+                }
             }
 
             if ( EdepInEvent_Particle[8]!=0)
