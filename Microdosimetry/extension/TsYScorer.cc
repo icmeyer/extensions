@@ -9,7 +9,7 @@
 // 4. TransZ: z position of sensitive volume
 // 5. SensitiveVolumeRadius: radius of sensitive volume (invalid for silicon microdosimeter)
 // 6.1. TissueEquivalentRadius: radius of tissue equivalent volume, for spherical and cylindrical TEPC
-// 6.2. MeanPathLength : Mean path lengt for SOD detecor
+// 6.2. MeanPathLength : Mean path length for SOD detecor
 //
 // optional parameters
 // 7. LinealEnergyLowerlimit: lower threshold of y scorer
@@ -18,6 +18,7 @@
 // 10. IncludeDoseMeanLinealEnergy: (boolean) whether to output yD
 // 11. GetRBEWithBioWeightFunction: true or false(default),to calculate RBE with biological weight function with endpoint of intestinal tolerance in mice
 // 12. GetRBEWithMKModel : true or false(default), calculate RBE with MKM model, Kase, Y., et al. (2006).
+// 13. SensitiveVolumeRadiusMinimum: minimum radius of sensitive volume
 // etc. 
 //
 // output
@@ -71,6 +72,12 @@ TsYScorer::TsYScorer(TsParameterManager* pM, TsMaterialManager* mM, TsGeometryMa
     CenterX = fPm->GetDoubleParameter(GetFullParmName("TransX"),"Length");
     CenterY = fPm->GetDoubleParameter(GetFullParmName("TransY"),"Length");
     CenterZ = fPm->GetDoubleParameter(GetFullParmName("TransZ"),"Length");
+    if (fPm->ParameterExists(GetFullParmName("SensitiveVolumeRadiusMinimum"))){
+        SVradiusMin = 	fPm->GetDoubleParameter(GetFullParmName("SensitiveVolumeRadiusMinimum"),"Length");
+    }
+    else{
+        SVradiusMin = 0;
+    }
     SVradius = 	fPm->GetDoubleParameter(GetFullParmName("SensitiveVolumeRadius"),"Length");
     TEradius =  fPm->GetDoubleParameter(GetFullParmName("TissueEquivalentRadius"),"Length"); 
     NumberOfHistoriesInRun =  fPm->GetIntegerParameter(GetFullParmName("NumberOfHistoriesInRun"));
@@ -148,7 +155,7 @@ TsYScorer::TsYScorer(TsParameterManager* pM, TsMaterialManager* mM, TsGeometryMa
     if (GeoNo ==0 ) G4cout << "spherical TEPC "<< G4endl; 
     if (GeoNo ==1 ) G4cout << "cylindrical TEPC "<< G4endl; 
     if (GeoNo ==2 ) G4cout << "silicon microdosimeter "<< G4endl; 
-    G4cout << "Radius of sensitive volume =" << SVradius/um << " um" << G4endl;   
+    G4cout << "Radius of sensitive volume = (" << SVradiusMin/um << ", " << SVradius/um << ") um" << G4endl;
     if(GeoNo ==1 )
     G4cout << "Height of sensitive volume =" << SVheight/um << " um" << G4endl; 
     G4cout << "Radius of tissue equivalent volume = "<< TEradius/um<< " um" << G4endl;
@@ -237,18 +244,26 @@ void TsYScorer::AccumulateEvent()
 					Einc = (*fHitsCollection)[i]->GetIncidentEnergy();
 					
                 G4ThreeVector localPos = (*fHitsCollection)[i]->GetPos();
-				if (
-						(localPos.x()-CenterPos.x()) * (localPos.x()-CenterPos.x()) +
-						(localPos.y()-CenterPos.y()) * (localPos.y()-CenterPos.y()) +
-						(localPos.z()-CenterPos.z()) * (localPos.z()-CenterPos.z())
-						< 1.00001*SVradius*SVradius
-					)
+                G4bool outsideMinRadius;
+                G4bool insideMaxRadius;
+                if (SVradiusMin==0){
+                    outsideMinRadius = true;
+                }
+                else {
+                    outsideMinRadius = (localPos.x()-CenterPos.x()) * (localPos.x()-CenterPos.x()) +
+                                      (localPos.y()-CenterPos.y()) * (localPos.y()-CenterPos.y()) +
+                                      (localPos.z()-CenterPos.z()) * (localPos.z()-CenterPos.z()) > 0.9999*SVradiusMin*SVradiusMin;
+                }
+                insideMaxRadius = (localPos.x()-CenterPos.x()) * (localPos.x()-CenterPos.x()) +
+                                  (localPos.y()-CenterPos.y()) * (localPos.y()-CenterPos.y()) +
+                                  (localPos.z()-CenterPos.z()) * (localPos.z()-CenterPos.z()) < 1.00001*SVradius*SVradius;
+
+				if (outsideMinRadius && insideMaxRadius)
 				{
 					G4double edep = (*fHitsCollection)[i]->GetEdep();
                     G4int flag = (*fHitsCollection)[i]->GetParticleFlag();
                     EdepInEvent_Particle[flag] += edep;  // save different particle edep
                     EdepInEvent_Particle[8] += edep;     // save total particle edep
-
 				}
 			}
 

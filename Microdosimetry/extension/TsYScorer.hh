@@ -34,7 +34,7 @@ private:
     TsTrackerHitsCollection* fHitsCollection;
     G4bool IncludeYF, IncludeYD;
     G4double TEradius;
-    G4double SVradius, SVheight;
+    G4double SVradius, SVradiusMin, SVheight;
     G4double MeanPathLength;
     G4double ylimitL, ylimitU;
     G4double CenterX, CenterY, CenterZ;
