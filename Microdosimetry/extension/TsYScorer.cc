@@ -34,7 +34,6 @@
 #include "Randomize.hh"
 #include "G4RandomDirection.hh"
 #include "G4SystemOfUnits.hh"
-#include "g4root.hh"
 
 #include "G4GeometryTolerance.hh"
 #include "G4SDManager.hh"
